@@ -1,8 +1,10 @@
+from pydoc import plain
 from random import randrange
 from random import getrandbits
 
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
+from Crypto.Util.Padding import unpad
 from Crypto.Hash import SHA256
 
 from sys import byteorder
@@ -63,6 +65,8 @@ def primeGen(bitlen: int) -> int:
     qlen = bitlen-1
     while(1):
         test = randrange(2**(qlen-1)+1, 2**qlen-1)
+        #test = getrandbits(qlen)
+        print(len(bin(test)))
         if not test & 1:
             continue
 
@@ -88,20 +92,29 @@ def diffe_helman_pk(p: int, g: int) -> int:
 
 def diffe_helman_decrypt(mykey: int, theykey: int, mod: int) -> int:
     shared = fastexp(theykey, mykey, mod)
+    
     print(shared)
 
-    #print(len(bin(shared)))
-
-    inp = shared.to_bytes(128, 'big') or b'\0'
+    inp = shared.to_bytes((shared.bit_length() + 7) // 8, 'big') or b'\0'
 
     sharedKey = SHA256.new(inp)
+    
     print(sharedKey.hexdigest()[:16])
-    return sharedKey.digest()[:16]
 
-def AES_CBC(key: bytes, iv: int, ciptext: str):
-    cipher = AES.new(key, AES.MODE_CBC)
-    iv = cipher.iv
-    ciphertext = cipher.encrypt(ciptext, AES.block_size)
+    return sharedKey.hexdigest()[:16]
+
+def AES_CBC(key: str, iv: str, ciptext: str):
+    
+    ivhex = bytes.fromhex(iv)
+    hexkey = bytes.fromhex(key)
+    print(ivhex, hexkey)
+    hexCiph = bytearray.fromhex(ciptext)
+    cipher = AES.new(hexkey, AES.MODE_CBC, ivhex)
+
+    plaintext = cipher.decrypt(hexCiph)
+    plaintext = plaintext.decode("utf-8")
+
+    print(plaintext)
 
 
 if __name__ == "__main__":
@@ -110,7 +123,7 @@ if __name__ == "__main__":
     n = 12855544647099734480
 
     diffieCyper = "8ce3c3a667b2b4e201b9298be61f732f60606cb21285a639cbddf0556c6afa6f3d5d77a99dafe5d483934a07794e8294417f07a8a268d1ee3610d72ff576cfd397dd808bae9728b9a93983b81c67ae0347d7ee028e3381cbbbfd14932a9d7a54db3923c7166aabf5468527643ddda44b6c072e0b2924afee19d01eae8fbb2603788e810610353aec697188e2f4360332f8433a125158ecbac280aff14f2475b1"
-    iv = "832130f4d7e6aad1229c1f2efc388057"
+    iv = "eb85c14b4322fd956cdd18c5f71b63e2"
 
     modp = 140274374150807592491449133255658231264268770631566034386022222100531343719074131494320604278312778732859456385125624162933502046700948579578441334754582148485091680383613071507321333900217883755516757499505617257396578048774303326718471426859340410626824475827439545034654263158357112035471608065055234954703
     givenPublicKey = 71503360547177244740871942427934802985954203769739168256253280874398044896324692565878166840147272532330237262077009270799636696469289654708093477979546298132232678185155496081943966934546205158497059581363680011826828777898460511295730285433585080824477042511272411533777299063743524338465535582730637685352
@@ -126,4 +139,5 @@ if __name__ == "__main__":
 
     #print(diffe_helman_pk(modp, 5))
     x = diffe_helman_decrypt(myPrivateKey, givenPublicKey, modp)
+    AES_CBC(x, iv, diffieCyper)
     
