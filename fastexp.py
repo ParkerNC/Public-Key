@@ -1,11 +1,16 @@
 
+#Parker Collier
+#public key
+#using 1 late day
+#go vols 
+
 from random import randrange
 
 from Crypto.Cipher import AES
 
 from Crypto.Hash import SHA256
 
-
+#used to speed up prime gen
 primelist = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29,
                      31, 37, 41, 43, 47, 53, 59, 61, 67,
                      71, 73, 79, 83, 89, 97, 101, 103,
@@ -17,6 +22,7 @@ primelist = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29,
                      307, 311, 313, 317, 331, 337, 347, 349]
 
 def fastexp(b: int, e: int, n: int) -> int:
+    #part 1 fast modular exponentiation
     prod = 1
     base = b
     exp = bin(e)[::-1]
@@ -30,6 +36,7 @@ def fastexp(b: int, e: int, n: int) -> int:
     return prod
 
 def millerR(p: int, i: int) -> bool:
+    #part 2 miller robin implementation
     s = 0
     n = p
     d = n-1
@@ -59,6 +66,7 @@ def millerR(p: int, i: int) -> bool:
 
 def safePrimeGen(bitlen: int) -> int:
     qlen = bitlen-1
+    #safe prime gen for diffie helman with a few optimizations, ie checking ez primes and making sure even
     while(1):
         test = randrange(2**(qlen-1)+1, 2**qlen-1)
         #test = getrandbits(qlen)
@@ -80,6 +88,7 @@ def safePrimeGen(bitlen: int) -> int:
     return test
 
 def diffe_helman_pk(p: int, g: int) -> int:
+    #generates a prvate key number for diffie helman
     a = randrange(p)
     print(a)
     pKey = fastexp(g, a, p)
@@ -89,6 +98,7 @@ def diffe_helman_pk(p: int, g: int) -> int:
 def diffe_helman_decrypt(mykey: int, theykey: int, mod: int) -> int:
     shared = fastexp(theykey, mykey, mod)
     
+    #prints the found number for shared key
     print(shared)
 
     inp = shared.to_bytes((shared.bit_length() + 7) // 8, 'big') or b'\0'
@@ -97,10 +107,11 @@ def diffe_helman_decrypt(mykey: int, theykey: int, mod: int) -> int:
     
     #print(sharedKey.hexdigest()[:16])
 
+    #returns sha hash of shared key
     return sharedKey.digest()[:16]
 
 def AES_CBC(key: bytes, iv: str, ciptext: str):
-    
+    #decrypts using given iv, ciphertext, and generted SHA key, also fudges with the bits a bit to get big endian 
     bitIv = int(iv, 16)
     print(bitIv)
     bitIv = bitIv.to_bytes((bitIv.bit_length() + 7) // 8, 'big') or b'\0'
@@ -112,12 +123,12 @@ def AES_CBC(key: bytes, iv: str, ciptext: str):
 
     plaintext = cipher.decrypt(bitCiph)
 
-    print(plaintext)
     plaintext = plaintext.decode("utf-8")
 
     print(plaintext)
 
 def RSA_gen(len: int, e: int = 65537):
+    #generates a prime, and then generates more primes untill they satisty RSA gcd(n) constraints
     i = 0
     p = 1
     q = 1
@@ -142,6 +153,7 @@ def RSA_gen(len: int, e: int = 65537):
     return p, q
 
 def gcd(a: int, b: int) -> int:
+    #taken from the notes
     tmpA = a
     tmpB = b
     while tmpB != 0:
@@ -150,6 +162,7 @@ def gcd(a: int, b: int) -> int:
     return tmpA
 
 def EEMI(e: int, n: int) -> int:
+    #mixed implementation of Extended Euclidian and Modular inverse to get desired private key
     global q, r
     q = 0
     r = 1
@@ -169,12 +182,14 @@ def EEMI(e: int, n: int) -> int:
         return q
 
 def RSA_encrypt(e: int, m: str, n: int) -> int:
+    #simple encryption and int fudging for RSA
     byteM = bytes(m, 'utf-8')
     byteM = int.from_bytes(byteM, "big")
     
     return fastexp(byteM, e, n)
 
 def RSA_decrypt(d: int, c: int, n: int) -> int:
+    #simple decryption and bit fudging for RSA
     pText = fastexp(c, d, n)
     pText = pText.to_bytes((pText.bit_length() + 7) // 8, 'big') or b'\0'
     pText = bytes.decode(pText, "utf-8")
@@ -231,8 +246,8 @@ if __name__ == "__main__":
     #crypt = RSA_encrypt(rsaE, rsaM, rsaN)
     #print(crypt)
 
-    #decrypt = RSA_decrypt(rsaD, rsaC, rsaN)
-    #print(decrypt)
+    decrypt = RSA_decrypt(rsaD, rsaC, rsaN)
+    print(decrypt)
 
 
 
